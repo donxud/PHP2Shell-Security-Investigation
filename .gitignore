@@ -1,0 +1,12 @@
+# Never commit real inventories, logs or exports to this public repo.
+*.real.csv
+inventory/
+private/
+*.log
+*.pcap
+*.evtx
+.env
+
+__pycache__/
+*.pyc
+.DS_Store
