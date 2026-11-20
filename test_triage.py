@@ -20,8 +20,16 @@ class ClassifyTests(unittest.TestCase):
         self.assertEqual(classify("8.2.0", "upstream"), UPDATE)
 
     def test_at_or_above_fix(self):
-        for v in ("8.2.35", "8.3.36", "8.4.27", "8.5.12", "8.5.13"):
+        for v in ("8.2.36", "8.3.37", "8.4.28", "8.5.13", "8.5.14", "8.6.0", "8.4.28-1"):
             self.assertEqual(classify(v, "upstream"), OK, v)
+
+    def test_october_php2shell_releases_still_need_the_november_update(self):
+        for v in ("8.2.35", "8.3.36", "8.4.27", "8.5.12"):
+            self.assertEqual(classify(v, "upstream"), UPDATE, v)
+
+    def test_prereleases_and_unrecognized_builds_need_review(self):
+        for v in ("8.6.0RC7", "8.6.0-dev", "8.5.13beta1", "8.4.28-custom"):
+            self.assertEqual(classify(v, "upstream"), REVIEW_VERSION, v)
 
     def test_eol_branches(self):
         for v in ("7.4.33", "8.0.30", "8.1.31"):

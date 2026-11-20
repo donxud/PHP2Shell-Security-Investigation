@@ -6,6 +6,8 @@
 
 *Figure 1. Conceptual overview. The firewall and VPN icons stand for product categories that matter **only where they embed an affected PHP runtime**. They do not mean any particular firewall or VPN product is affected.*
 
+> **19 November 2026 update.** PHP's October releases are still affected by phpAfterShell (CVE-2026-126714). Update to PHP 8.2.36, 8.3.37, 8.4.28, 8.5.13, or 8.6.0, or confirm a documented vendor backport. See the [phpAfterShell advisory update](advisories/phpaftershell-cve-2026-126714.md) for affected versions, temporary mitigation, and verification steps.
+
 ## Quick start
 
 ```bash
@@ -21,7 +23,7 @@ PHP2Shell is the name for two critical vulnerabilities in the PHP engine, **CVE-
 
 The flaw is in the runtime, not in a single application, so the exposure is **not limited to one CMS, firewall, or vendor**. PHP runs in websites, management interfaces, vendor appliances, internal applications, container images, and third-party software. This repository turns that point into a practical blue-team playbook: inventory, investigate, remediate, verify.
 
-## 1. Advisory facts
+## 1. October PHP2Shell advisory facts
 
 | Field | Detail |
 |---|---|
@@ -31,11 +33,13 @@ The flaw is in the runtime, not in a single application, so the exposure is **no
 | Severity | Critical, CVSS v4.0 9.2 for each (PHP as CNA) |
 | Impact | Unauthenticated RCE in the context of the PHP worker, under vulnerable conditions |
 | Affected | 8.2 < 8.2.35, 8.3 < 8.3.36, 8.4 < 8.4.27, 8.5 < 8.5.12 |
-| Fixed releases | 8.2.35, 8.3.36, 8.4.27, 8.5.12 (21 Oct 2026), or a distro/vendor build that carries the fix |
+| Initial October fixes | 8.2.35, 8.3.36, 8.4.27, 8.5.12 (21 Oct 2026), or a distro/vendor build that carries the fix |
 | End-of-life branches | 8.1, 8.0, 7.4 get no official release. Upgrade to a supported branch or use a vendor backport |
 | Exploitation | Both CVE-2026-109618 and CVE-2026-109619 were added to the CISA Known Exploited Vulnerabilities catalog on 26 Oct 2026. Check the catalog for current status |
 | Mitigation | PHP states that updating is the only complete fix. There is no generic configuration workaround |
 | Priority | Internet-facing PHP first, then reachable internal and bundled PHP runtimes |
+
+The table records the original October release. Use the [November advisory update](advisories/phpaftershell-cve-2026-126714.md) for the current patch baseline in this repo.
 
 Always confirm against the upstream advisories and your vendor's package notices before planning changes. Distro packages often keep an older upstream version number and add the fix as a backport.
 
@@ -137,11 +141,12 @@ Temporary mitigations and WAF rules may reduce exposure but do not replace patch
 
 *Figure 3. Example isolated-lab design. It is not evidence that a vulnerable test host was deployed. The script below performs inventory triage only.*
 
-`triage.py` reads a local CSV and compares each PHP version with the fixed upstream releases. It makes no network requests, sends no payloads, and does not test exploitability.
+`triage.py` reads a local CSV and compares each PHP version with the November upstream release baseline for the advisories covered here. It makes no network requests, sends no payloads, and does not test exploitability.
 
 ```csv
 asset,php_version,exposure,package_source
 internal-app-02,8.3.36,internal,upstream
+internal-app-07,8.6.0,internal,upstream
 public-web-01,8.4.26,internet,upstream
 legacy-vendor-03,8.2.34,internal,vendor-backport
 distro-web-05,8.4.27-1~deb13u1,internet,distro
@@ -159,14 +164,15 @@ Output, with internet-facing assets listed first:
 [internet] public-web-01: UPDATE
 [internet] distro-web-05: MANUAL REVIEW: verify distro/vendor package advisory
 [internet] legacy-portal-06: UPDATE: end-of-life branch, no upstream fix
-[internal] internal-app-02: MEETS LISTED UPSTREAM FIX
+[internal] internal-app-02: UPDATE
+[internal] internal-app-07: MEETS LISTED UPSTREAM BASELINE
 [internal] legacy-vendor-03: MANUAL REVIEW: verify distro/vendor package advisory
 [internal] workstation-04: MANUAL REVIEW: missing/nonstandard version
 ```
 
-The script exits with status `1` when any asset needs action or review, so it can gate a CI job or a scheduled check.
+A prerelease or unrecognized upstream build suffix is flagged for manual review. The script exits with status `1` when any asset needs action or review, so it can gate a CI job or a scheduled check.
 
-**Limitations:** It trusts the inventory you give it. It does not assess reachability, SAPI configuration, distro/vendor backports (those are flagged for manual review), image provenance, or compromise. Treat its output as a first triage hint, not proof of a working patch or a clean host.
+**Limitations:** It trusts the inventory you give it. It does not assess reachability, session handlers, effective upload-progress settings, distro/vendor backports (those are flagged for manual review), image provenance, or compromise. Treat its output as a first triage hint, not proof of a working patch or a clean host.
 
 **Do not commit real data.** Never put real asset names, IP addresses, credentials, tokens, logs, screenshots, or investigation notes in a public repository. The included `.gitignore` excludes `*.real.csv`, `inventory/`, and `private/` as a safety net. Run real analysis only in an approved private environment.
 
@@ -184,6 +190,8 @@ Maintain a living dependency and exposure inventory. Subscribe to upstream and s
 ├── assets.csv          # fictional assets only
 ├── triage.py           # offline, version-only triage
 ├── test_triage.py      # unit tests for triage.py
+├── advisories/
+│   └── phpaftershell-cve-2026-126714.md
 └── assets/
     ├── php2shell-overview.png
     ├── defense-investigation-architecture.png

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Offline, version-only PHP2Shell triage (CVE-2026-109618 / CVE-2026-109619).
+"""Offline PHP2Shell and phpAfterShell patch-baseline triage.
 
 Reads a CSV inventory and compares each PHP version string with the fixed
-upstream releases published on 21 Oct 2026. It makes no network requests,
+upstream releases published on 19 Nov 2026 for the advisories in the README. It makes no network requests,
 sends no payloads and does not test exploitability. The result is a first
 triage hint, not proof of vulnerability, of a working patch, or of a clean host.
 
@@ -19,25 +19,27 @@ import csv
 import re
 import sys
 
-# Fixed upstream releases per supported branch (php.net, 21 Oct 2026).
+# Stable upstream release baselines for the advisories in the README.
 FIXED = {
-    (8, 2): (8, 2, 35),
-    (8, 3): (8, 3, 36),
-    (8, 4): (8, 4, 27),
-    (8, 5): (8, 5, 12),
+    (8, 2): (8, 2, 36),
+    (8, 3): (8, 3, 37),
+    (8, 4): (8, 4, 28),
+    (8, 5): (8, 5, 13),
+    (8, 6): (8, 6, 0),
 }
 
-# End-of-life branches: affected, with no official upstream release.
+# Legacy branches that should move to a supported upstream release.
 EOL_AFFECTED = {(7, 4), (8, 0), (8, 1)}
 
 EXPOSURE_RANK = {"internet": 0, "internal": 1}
 
 # Leading major.minor.patch; tolerates distro suffixes such as 8.4.27-1~deb13u1.
 VERSION_RE = re.compile(r"^\s*(\d+)\.(\d+)\.(\d+)")
+STABLE_UPSTREAM_RE = re.compile(r"\d+\.\d+\.\d+(?:-\d+)?")
 
 UPDATE = "UPDATE"
 EOL = "UPDATE: end-of-life branch, no upstream fix"
-OK = "MEETS LISTED UPSTREAM FIX"
+OK = "MEETS LISTED UPSTREAM BASELINE"
 REVIEW_BACKPORT = "MANUAL REVIEW: verify distro/vendor package advisory"
 REVIEW_VERSION = "MANUAL REVIEW: missing/nonstandard version"
 REVIEW_BRANCH = "MANUAL REVIEW: branch not covered by advisory"
@@ -74,6 +76,11 @@ def classify(raw_version, source):
     # Unknown sources must not be treated as upstream.
     if source != "upstream":
         return REVIEW_SOURCE
+
+    # Release candidates, development builds, and unrecognized suffixes need review.
+    # PHP also publishes numbered upstream rebuilds such as the Windows -1 builds.
+    if not STABLE_UPSTREAM_RE.fullmatch(raw_version.strip()):
+        return REVIEW_VERSION
 
     return UPDATE if parts < threshold else OK
 

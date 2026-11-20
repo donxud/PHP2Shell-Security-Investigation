@@ -1,5 +1,6 @@
 asset,php_version,exposure,package_source
 internal-app-02,8.3.36,internal,upstream
+internal-app-07,8.6.0,internal,upstream
 public-web-01,8.4.26,internet,upstream
 legacy-vendor-03,8.2.34,internal,vendor-backport
 distro-web-05,8.4.27-1~deb13u1,internet,distro
